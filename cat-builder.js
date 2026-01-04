@@ -188,7 +188,8 @@ export function createCatModel() {
     torsoGroup.add(leftThigh, rightThigh);
 
     // Lower Hind Leg (Tucked) & Hind Paw
-    const hindFootGeo = new THREE.CapsuleGeometry(0.18, 0.8, 4, 8);
+    // Note: CapsuleGeometry is not available in r128, utilizing Cylinder as approximation
+    const hindFootGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.8, 8);
     
     const leftHindFoot = new THREE.Mesh(hindFootGeo, furMaterial);
     leftHindFoot.rotation.x = Math.PI / 2; // Flat on ground

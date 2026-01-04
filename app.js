@@ -183,15 +183,18 @@ const App = () => {
 
     }, []);
 
-    return (
-        <>
-            <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-            <div className={`loading-overlay ${isLoaded ? 'hidden' : ''}`}>
-                <h2>Generating Procedural Cat...</h2>
-            </div>
-        </>
+    return React.createElement(React.Fragment, null,
+        React.createElement("div", {
+            ref: containerRef,
+            style: { width: '100%', height: '100%' }
+        }),
+        React.createElement("div", {
+            className: `loading-overlay ${isLoaded ? 'hidden' : ''}`
+        },
+            React.createElement("h2", null, "Generating Procedural Cat...")
+        )
     );
 };
 
 const root = createRoot(document.getElementById('root'));
-root.render(<App />);
+root.render(React.createElement(App));
