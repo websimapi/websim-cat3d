@@ -227,6 +227,19 @@ const App = () => {
                 // Front Legs (Swing - Standard pendulum)
                 parts.frontLeftLeg.rotation.x = Math.sin(freq) * amp;
                 parts.frontRightLeg.rotation.x = Math.sin(freq + Math.PI) * amp;
+
+                // Front Leg Lift Logic (Prevent Clipping)
+                // Lift when swinging forward (cos > 0 indicates forward velocity in this setup)
+                // Peak lift at mid-swing (freq ~ 0, 2pi)
+                const lLift = Math.max(0, Math.cos(freq)) * 0.14 * factor;
+                const rLift = Math.max(0, Math.cos(freq + Math.PI)) * 0.14 * factor;
+
+                parts.frontLeftLeg.position.y += lLift;
+                parts.frontRightLeg.position.y += rLift;
+
+                // Paw Flexion (Bend back when lifting)
+                if(parts.frontLeftPaw) parts.frontLeftPaw.rotation.x = -lLift * 3;
+                if(parts.frontRightPaw) parts.frontRightPaw.rotation.x = -rLift * 3;
                 
                 // Hind Legs (Complex Swing)
                 // We mainly rotate the Hip, but can add subtle knee motion
@@ -244,9 +257,9 @@ const App = () => {
                 parts.leftShinGroup.rotation.x = kneeRot + lKneeOsc; // Bend more
                 parts.rightShinGroup.rotation.x = kneeRot + rKneeOsc;
 
-                // Bob Body
-                parts.hips.position.y += Math.abs(Math.sin(freq * 2)) * 0.03 * factor;
-                parts.chest.position.y += Math.sin(freq * 2) * 0.02 * factor;
+                // Bob Body (Cos phase aligns peak height with vertical leg to clear ground)
+                parts.hips.position.y += Math.cos(freq * 2) * 0.02 * factor;
+                parts.chest.position.y += Math.cos(freq * 2) * 0.02 * factor;
             } else {
                  // Reset
                 parts.frontLeftLeg.rotation.x = THREE.MathUtils.lerp(parts.frontLeftLeg.rotation.x, 0, 0.1);

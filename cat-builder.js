@@ -394,6 +394,9 @@ export function createCatModel() {
             rightShinGroup,
             leftAnkleGroup,
             rightAnkleGroup,
+            
+            frontLeftPaw: flPaw,
+            frontRightPaw: frPaw,
 
             leftEar: leftEarGroup,
             rightEar: rightEarGroup,
