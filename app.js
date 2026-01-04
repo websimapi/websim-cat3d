@@ -107,67 +107,27 @@ const App = () => {
                 const breathFactor = 1 + Math.sin(time * 4) * 0.02; // 1.5 sec cycle approx
                 parts.body.scale.set(1 * breathFactor, 1, 1 * breathFactor);
 
-                // 2. Tail Movement (Wave) & Ground Collision
-                // Update parent world matrices to ensure accurate chain positioning
-                catData.mesh.updateMatrixWorld();
-
+                // 2. Tail Movement (Wave)
                 parts.tail.forEach((seg, i) => {
                     if (seg.userData.baseRot) {
-                        // --- A. Procedural Animation ---
+                        // Apply wave relative to base rotation
                         const waveSpeed = 2;
                         const waveOffset = i * 0.3;
                         const waveAmp = 0.06;
                         
+                        // Main wave on Z (curling axis)
                         const waveZ = Math.sin(time * waveSpeed - waveOffset) * waveAmp;
-                        const waveX = Math.cos(time * waveSpeed * 0.5 - waveOffset) * (waveAmp * 0.5);
-                        
                         seg.rotation.z = seg.userData.baseRot.z + waveZ;
+
+                        // Slight secondary motion
+                        const waveX = Math.cos(time * waveSpeed * 0.5 - waveOffset) * (waveAmp * 0.5);
                         seg.rotation.x = seg.userData.baseRot.x + waveX;
                         
+                        // Tip twitch
                         if(i === parts.tail.length - 1) {
                             seg.rotation.y = seg.userData.baseRot.y + Math.sin(time * 10) * 0.15;
                         } else {
                             seg.rotation.y = seg.userData.baseRot.y;
-                        }
-
-                        // --- B. Ground Collision Check ---
-                        // Update this segment's world matrix to check its proposed position
-                        seg.updateMatrixWorld();
-
-                        const segLen = seg.userData.length || 0.15;
-                        const segRad = seg.userData.radius || 0.05;
-                        
-                        // Check tip position in world space
-                        const tipLocal = new THREE.Vector3(0, segLen, 0);
-                        const tipWorld = tipLocal.applyMatrix4(seg.matrixWorld);
-
-                        const groundLevel = 0;
-                        const clearance = segRad; 
-
-                        if (tipWorld.y < groundLevel + clearance) {
-                            // Calculate penetration depth
-                            const penetration = (groundLevel + clearance) - tipWorld.y;
-                            
-                            // Calculate correction angle to lift tip
-                            // sin(angle) = penetration / hypotenuse(length)
-                            const sinVal = Math.min(1.0, penetration / segLen);
-                            const correctionAngle = Math.asin(sinVal);
-
-                            // Determine rotation axis: Perpendicular to Segment Vector and World Up
-                            const baseWorld = new THREE.Vector3().setFromMatrixPosition(seg.matrixWorld);
-                            const segVec = new THREE.Vector3().subVectors(tipWorld, baseWorld).normalize();
-                            const upVec = new THREE.Vector3(0, 1, 0);
-                            
-                            const axis = new THREE.Vector3().crossVectors(segVec, upVec).normalize();
-                            
-                            // Safety check for degenerate axis (vertical segment)
-                            if (axis.lengthSq() < 0.01) axis.set(1, 0, 0);
-
-                            // Apply correction (rotate quaternion in world space)
-                            seg.rotateOnWorldAxis(axis, correctionAngle);
-                            
-                            // Update matrix so children inherit corrected transform
-                            seg.updateMatrixWorld();
                         }
                     }
                 });

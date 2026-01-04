@@ -53,16 +53,18 @@ export function createCatModel() {
     chest.receiveShadow = true;
     catGroup.add(chest);
 
-    // Spine/Belly (Connecting Hips and Chest)
-    const spineGeo = new THREE.CylinderGeometry(0.6, 0.63, 1.1, 24);
-    const spine = new THREE.Mesh(spineGeo, furMaterial);
-    // Align spine between hips and chest
-    const spinePos = new THREE.Vector3().lerpVectors(hips.position, chest.position, 0.5);
-    spine.position.copy(spinePos);
-    spine.lookAt(chest.position);
-    spine.rotateX(Math.PI/2); 
-    spine.castShadow = true;
-    catGroup.add(spine);
+    // Belly (Connecting Hips and Chest seamlessly)
+    // We use a sphere to bridge the gap and smooth the transition, replacing the rigid cylinder
+    const bellyGeo = new THREE.SphereGeometry(0.64, 32, 32);
+    bellyGeo.scale(1.05, 0.95, 1.1);
+    const belly = new THREE.Mesh(bellyGeo, furMaterial);
+    
+    // Position belly to blend hips and chest
+    const bellyPos = new THREE.Vector3().lerpVectors(hips.position, chest.position, 0.45);
+    bellyPos.z -= 0.05; // Slightly back to smooth the front curve
+    belly.position.copy(bellyPos);
+    belly.castShadow = true;
+    catGroup.add(belly);
 
     // 3. Neck
     const neckGeo = new THREE.CylinderGeometry(0.38, 0.5, 0.6, 24);
@@ -175,8 +177,8 @@ export function createCatModel() {
     rightShoulder.position.set(-0.4, 1.3, 0.5);
     catGroup.add(rightShoulder);
 
-    // Legs
-    const legGeo = new THREE.CylinderGeometry(0.13, 0.11, 1.3, 16);
+    // Legs - Tapered for realism (Thicker at top)
+    const legGeo = new THREE.CylinderGeometry(0.18, 0.11, 1.3, 16);
     
     const leftLeg = new THREE.Mesh(legGeo, furMaterial);
     leftLeg.position.set(0.4, 0.65, 0.55);
@@ -188,16 +190,36 @@ export function createCatModel() {
     rightLeg.castShadow = true;
     catGroup.add(rightLeg);
 
+    // Helper to create detailed paws
+    const createPaw = () => {
+        const pawGroup = new THREE.Group();
+        // Main pad
+        const palmGeo = new THREE.SphereGeometry(0.15, 16, 16);
+        palmGeo.scale(1.1, 0.55, 1.2);
+        const palm = new THREE.Mesh(palmGeo, furMaterial);
+        pawGroup.add(palm);
+        
+        // Toes
+        const toeGeo = new THREE.SphereGeometry(0.07, 12, 12);
+        const toeOffsets = [-0.1, -0.03, 0.03, 0.1];
+        const toeZOffsets = [0.12, 0.15, 0.15, 0.12];
+        
+        for(let i=0; i<4; i++) {
+            const toe = new THREE.Mesh(toeGeo, furMaterial);
+            toe.position.set(toeOffsets[i], -0.02, toeZOffsets[i]);
+            toe.scale.set(1, 0.7, 1);
+            pawGroup.add(toe);
+        }
+        return pawGroup;
+    };
+
     // Paws (Front)
-    const pawGeo = new THREE.SphereGeometry(0.16, 16, 16);
-    pawGeo.scale(1.1, 0.6, 1.3);
-    
-    const flPaw = new THREE.Mesh(pawGeo, furMaterial);
-    flPaw.position.set(0, -0.65, 0.05);
+    const flPaw = createPaw();
+    flPaw.position.set(0, -0.65, 0.08);
     leftLeg.add(flPaw);
     
-    const frPaw = new THREE.Mesh(pawGeo, furMaterial);
-    frPaw.position.set(0, -0.65, 0.05);
+    const frPaw = createPaw();
+    frPaw.position.set(0, -0.65, 0.08);
     rightLeg.add(frPaw);
 
 
@@ -218,15 +240,36 @@ export function createCatModel() {
     catGroup.add(rightThigh);
 
     // Hind Paws (Peeking out front)
-    const hindPawGeo = new THREE.SphereGeometry(0.16, 16, 16);
-    hindPawGeo.scale(1.1, 0.6, 1.3);
+    // Slightly different shape for hind paws
+    const createHindPaw = () => {
+        const group = new THREE.Group();
+        const palmGeo = new THREE.SphereGeometry(0.16, 16, 16);
+        palmGeo.scale(1.1, 0.6, 1.3);
+        const palm = new THREE.Mesh(palmGeo, furMaterial);
+        group.add(palm);
+        
+        // Toes
+        const toeGeo = new THREE.SphereGeometry(0.075, 12, 12);
+        const toeOffsets = [-0.11, -0.04, 0.04, 0.11];
+        const toeZOffsets = [0.13, 0.16, 0.16, 0.13];
+        
+        for(let i=0; i<4; i++) {
+            const toe = new THREE.Mesh(toeGeo, furMaterial);
+            toe.position.set(toeOffsets[i], -0.02, toeZOffsets[i]);
+            toe.scale.set(1, 0.75, 1);
+            group.add(toe);
+        }
+        return group;
+    }
 
-    const leftHindPaw = new THREE.Mesh(hindPawGeo, furMaterial);
-    leftHindPaw.position.set(0.65, 0.1, 0.55); // Near front leg
+    const leftHindPaw = createHindPaw();
+    leftHindPaw.position.set(0.68, 0.08, 0.55); 
+    leftHindPaw.rotation.y = 0.2; // Angle out slightly
     catGroup.add(leftHindPaw);
 
-    const rightHindPaw = new THREE.Mesh(hindPawGeo, furMaterial);
-    rightHindPaw.position.set(-0.65, 0.1, 0.55);
+    const rightHindPaw = createHindPaw();
+    rightHindPaw.position.set(-0.68, 0.08, 0.55);
+    rightHindPaw.rotation.y = -0.2;
     catGroup.add(rightHindPaw);
 
 
@@ -272,11 +315,7 @@ export function createCatModel() {
         }
         
         seg.rotation.copy(baseRot);
-        seg.userData = {
-            baseRot: baseRot,
-            length: tailSegLen,
-            radius: radius * 0.9
-        };
+        seg.userData.baseRot = baseRot; // Store for animation
         
         parent.add(seg);
         parent = seg;
