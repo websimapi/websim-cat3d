@@ -132,6 +132,65 @@ const App = () => {
                     }
                 });
 
+                // Tail Ground Collision (Post-Correction)
+                // We iterate from root to tip to ensure parent transforms are valid
+                parts.tail.forEach((seg) => {
+                    // Update this segment's world matrix (and parents if needed, though they should be up to date)
+                    seg.updateMatrixWorld();
+                    
+                    const len = seg.userData.length || 0.15;
+                    const radius = seg.userData.radius || 0.05;
+                    
+                    // 1. Get positions
+                    const basePos = new THREE.Vector3().setFromMatrixPosition(seg.matrixWorld);
+                    const tipLocal = new THREE.Vector3(0, len, 0);
+                    const tipPos = tipLocal.clone().applyMatrix4(seg.matrixWorld);
+                    
+                    // 2. Check height
+                    const groundMargin = radius * 0.9; // Allow a tiny bit of mesh sink for contact look
+                    if (tipPos.y < groundMargin) {
+                        // Vector from base to tip
+                        const vec = new THREE.Vector3().subVectors(tipPos, basePos);
+                        
+                        // We want the new tip Y to be at least groundMargin
+                        // So the new vertical component of vec should be (groundMargin - basePos.y)
+                        // But we must respect the segment length.
+                        let targetY = groundMargin - basePos.y;
+                        
+                        // If base is already below ground (unlikely given setup), clamp target
+                        if (targetY > len) targetY = len;
+                        
+                        // Angle math
+                        // Current vertical sine component
+                        const currentSin = vec.y / len;
+                        // Target vertical sine component
+                        const targetSin = targetY / len;
+                        
+                        // Clamp sines to -1..1 to avoid NaN
+                        const currentAngle = Math.asin(Math.max(-1, Math.min(1, currentSin)));
+                        const targetAngle = Math.asin(Math.max(-1, Math.min(1, targetSin)));
+                        
+                        const angleDiff = targetAngle - currentAngle;
+                        
+                        if (angleDiff > 0.0001) {
+                            // Rotate around axis perpendicular to the tail and World UP
+                            // Vector is 'vec', Up is (0,1,0).
+                            const axis = new THREE.Vector3().crossVectors(vec, new THREE.Vector3(0, 1, 0)).normalize();
+                            
+                            // If tail is perfectly vertical, axis is zero. Fallback to X axis?
+                            if (axis.lengthSq() < 0.001) {
+                                axis.set(1, 0, 0);
+                            }
+
+                            // Apply correction
+                            seg.rotateOnWorldAxis(axis, angleDiff);
+                            
+                            // Essential: Update matrix immediately so children inherit the lift
+                            seg.updateMatrixWorld();
+                        }
+                    }
+                });
+
                 // 3. Blinking
                 blinkTimer += 0.016;
                 if (blinkTimer > nextBlinkTime) {

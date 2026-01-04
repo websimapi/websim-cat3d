@@ -273,6 +273,8 @@ export function createCatModel() {
         
         seg.rotation.copy(baseRot);
         seg.userData.baseRot = baseRot; // Store for animation
+        seg.userData.length = tailSegLen;
+        seg.userData.radius = radius;
         
         parent.add(seg);
         parent = seg;
