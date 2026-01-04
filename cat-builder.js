@@ -13,218 +13,243 @@ export function createCatModel() {
         normalScale: new THREE.Vector2(1.5, 1.5),
         color: 0xffffff,
         roughness: 0.85,
-        metalness: 0.0,
+        metalness: 0.05,
     });
 
     const skinMaterial = new THREE.MeshStandardMaterial({
         color: 0xFDB5A3, // Pinkish
-        roughness: 0.6,
+        roughness: 0.5,
     });
 
     const eyeMap = generateEyeTexture();
     const eyeMaterial = new THREE.MeshPhysicalMaterial({
         map: eyeMap,
         color: 0xffffff,
-        roughness: 0.0,
+        roughness: 0.1,
         metalness: 0.0,
         clearcoat: 1.0,
         clearcoatRoughness: 0.1,
-        transmission: 0.1,
+        transmission: 0.0,
     });
 
-    // --- ANATOMY CONSTRUCTION ---
+    // --- ANATOMY CONSTRUCTION (Sitting Pose) ---
+    // The cat is constructed from bottom up to ensure ground contact
 
-    // 1. Torso Group (Center of logic)
-    // Sitting pose: Torso is angled upwards
-    const torsoGroup = new THREE.Group();
-    // Rotate torso to sitting angle (approx 60 degrees up)
-    torsoGroup.rotation.x = -Math.PI / 4; 
-    torsoGroup.position.y = 1.2;
-    catGroup.add(torsoGroup);
+    // 1. Hips / Lower Body (The base)
+    const hipsGeo = new THREE.SphereGeometry(0.65, 32, 32);
+    hipsGeo.scale(1, 0.85, 1.15); // Wide base
+    const hips = new THREE.Mesh(hipsGeo, furMaterial);
+    hips.position.set(0, 0.55, 0); // Sitting on ground
+    hips.castShadow = true;
+    hips.receiveShadow = true;
+    catGroup.add(hips);
 
-    // Main Body Shape (Capsule-ish)
-    // Deforming a cylinder to look like chest + belly
-    const bodyGeo = new THREE.CylinderGeometry(0.7, 0.9, 2.5, 16, 4);
-    // Deform vertices for spine arch and chest
-    const posAttribute = bodyGeo.attributes.position;
-    for(let i=0; i<posAttribute.count; i++) {
-        const x = posAttribute.getX(i);
-        const y = posAttribute.getY(i);
-        const z = posAttribute.getZ(i);
-        
-        // Push chest out (Y positive in local, Z positive in world relative to rotation)
-        let zMod = z;
-        if(y > 0.5 && z > 0) zMod += 0.2; // Chest puff
-        
-        posAttribute.setZ(i, zMod);
-    }
-    bodyGeo.computeVertexNormals();
-    const bodyMesh = new THREE.Mesh(bodyGeo, furMaterial);
-    bodyMesh.castShadow = true;
-    bodyMesh.receiveShadow = true;
-    torsoGroup.add(bodyMesh);
+    // 2. Chest / Upper Body
+    const chestGeo = new THREE.SphereGeometry(0.62, 32, 32);
+    chestGeo.scale(1, 0.95, 0.85);
+    const chest = new THREE.Mesh(chestGeo, furMaterial);
+    chest.position.set(0, 1.45, 0.3); // Up and forward
+    chest.castShadow = true;
+    chest.receiveShadow = true;
+    catGroup.add(chest);
 
+    // Spine/Belly (Connecting Hips and Chest)
+    const spineGeo = new THREE.CylinderGeometry(0.6, 0.63, 1.1, 24);
+    const spine = new THREE.Mesh(spineGeo, furMaterial);
+    // Align spine between hips and chest
+    const spinePos = new THREE.Vector3().lerpVectors(hips.position, chest.position, 0.5);
+    spine.position.copy(spinePos);
+    spine.lookAt(chest.position);
+    spine.rotateX(Math.PI/2); 
+    spine.castShadow = true;
+    catGroup.add(spine);
 
-    // 2. Head Group
+    // 3. Neck
+    const neckGeo = new THREE.CylinderGeometry(0.38, 0.5, 0.6, 24);
+    const neck = new THREE.Mesh(neckGeo, furMaterial);
+    neck.position.set(0, 1.9, 0.35); 
+    neck.rotation.x = 0.15;
+    catGroup.add(neck);
+
+    // 4. Head Group
     const headGroup = new THREE.Group();
-    headGroup.position.set(0, 1.4, 0.3); // Top of neck
-    headGroup.rotation.x = Math.PI / 4; // Counteract body rotation to look forward
-    torsoGroup.add(headGroup);
+    headGroup.position.set(0, 2.25, 0.45);
+    catGroup.add(headGroup);
 
-    // Skull
-    const skullGeo = new THREE.SphereGeometry(0.55, 32, 32);
-    // Flatten top and bottom slightly
-    skullGeo.scale(1, 0.85, 1);
+    // Cranium
+    const skullGeo = new THREE.SphereGeometry(0.48, 32, 32);
+    skullGeo.scale(1.15, 1, 1); // Wider cheeks
     const skull = new THREE.Mesh(skullGeo, furMaterial);
     skull.castShadow = true;
     headGroup.add(skull);
 
-    // Muzzle (Snout)
-    const muzzleGeo = new THREE.SphereGeometry(0.25, 16, 16);
-    muzzleGeo.scale(1, 0.8, 1.2);
+    // Muzzle/Snout
+    const muzzleGroup = new THREE.Group();
+    muzzleGroup.position.set(0, -0.15, 0.35);
+    headGroup.add(muzzleGroup);
+
+    // Muzzle main volume
+    const muzzleGeo = new THREE.SphereGeometry(0.22, 24, 24);
+    muzzleGeo.scale(1, 0.8, 1.1);
     const muzzle = new THREE.Mesh(muzzleGeo, furMaterial);
-    muzzle.position.set(0, -0.15, 0.45);
-    headGroup.add(muzzle);
+    muzzleGroup.add(muzzle);
+
+    // Cheek puffs (Whisker pads)
+    const cheekGeo = new THREE.SphereGeometry(0.14, 16, 16);
+    const leftCheek = new THREE.Mesh(cheekGeo, furMaterial);
+    leftCheek.position.set(0.14, -0.05, 0.15);
+    muzzleGroup.add(leftCheek);
+
+    const rightCheek = new THREE.Mesh(cheekGeo, furMaterial);
+    rightCheek.position.set(-0.14, -0.05, 0.15);
+    muzzleGroup.add(rightCheek);
+
+    // Jaw/Chin
+    const jawGeo = new THREE.SphereGeometry(0.1, 16, 16);
+    const jaw = new THREE.Mesh(jawGeo, furMaterial);
+    jaw.position.set(0, -0.2, 0.1);
+    muzzleGroup.add(jaw);
 
     // Nose (Pink tip)
-    const noseGeo = new THREE.BufferGeometry(); // Simple triangle/tetrahedron
-    const nosePts = [
-        new THREE.Vector3(-0.08, 0, 0),
-        new THREE.Vector3(0.08, 0, 0),
-        new THREE.Vector3(0, -0.08, 0), // Point down
-        new THREE.Vector3(0, 0, 0.05)   // Point forward
-    ];
-    noseGeo.setFromPoints(nosePts);
-    noseGeo.computeVertexNormals();
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.06, 3), skinMaterial);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.05, 3), skinMaterial);
     nose.rotation.x = Math.PI/2;
     nose.rotation.z = Math.PI;
-    nose.position.set(0, 0.05, 0.73);
-    headGroup.add(nose);
+    nose.position.set(0, 0.05, 0.35); // On tip of muzzle
+    muzzleGroup.add(nose);
 
     // Ears
-    const earGeo = new THREE.ConeGeometry(0.2, 0.4, 4);
-    earGeo.scale(1, 1, 0.3); // Flatten
+    const earGeo = new THREE.ConeGeometry(0.18, 0.4, 32);
+    earGeo.scale(1, 1, 0.25); // Flattened
     
+    const leftEarGroup = new THREE.Group();
+    leftEarGroup.position.set(0.3, 0.35, 0);
+    leftEarGroup.rotation.set(-0.1, 0, -0.5);
     const leftEar = new THREE.Mesh(earGeo, furMaterial);
-    leftEar.position.set(0.3, 0.4, 0);
-    leftEar.rotation.set(-0.2, 0, -0.4);
-    leftEar.castShadow = true;
+    leftEar.position.y = 0.2; // Pivot offset
+    leftEarGroup.add(leftEar);
+    headGroup.add(leftEarGroup);
     
+    const rightEarGroup = new THREE.Group();
+    rightEarGroup.position.set(-0.3, 0.35, 0);
+    rightEarGroup.rotation.set(-0.1, 0, 0.5);
     const rightEar = new THREE.Mesh(earGeo, furMaterial);
-    rightEar.position.set(-0.3, 0.4, 0);
-    rightEar.rotation.set(-0.2, 0, 0.4);
-    rightEar.castShadow = true;
-
-    headGroup.add(leftEar);
-    headGroup.add(rightEar);
+    rightEar.position.y = 0.2;
+    rightEarGroup.add(rightEar);
+    headGroup.add(rightEarGroup);
 
     // Eyes
-    const eyeGeo = new THREE.SphereGeometry(0.12, 24, 24);
-    eyeGeo.rotateY(-Math.PI / 2); // Rotate texture to face forward
+    const eyeGeo = new THREE.SphereGeometry(0.11, 24, 24);
+    eyeGeo.rotateY(-Math.PI / 2); // Orient texture
     
     const leftEye = new THREE.Mesh(eyeGeo, eyeMaterial);
-    leftEye.position.set(0.2, 0.05, 0.42);
-    leftEye.rotation.y = -0.1; // Slight outward slant
+    leftEye.position.set(0.2, 0.08, 0.38);
+    leftEye.rotation.set(0, -0.15, 0);
     
     const rightEye = new THREE.Mesh(eyeGeo, eyeMaterial);
-    rightEye.position.set(-0.2, 0.05, 0.42);
-    rightEye.rotation.y = 0.1;
+    rightEye.position.set(-0.2, 0.08, 0.38);
+    rightEye.rotation.set(0, 0.15, 0);
 
-    // Eyelids (for blinking) - simple spheres slightly larger than eyes, scaled to cover top
-    const eyelidGeo = new THREE.SphereGeometry(0.13, 24, 24, 0, Math.PI * 2, 0, Math.PI/2);
+    // Eyelids
+    const eyelidGeo = new THREE.SphereGeometry(0.12, 24, 24, 0, Math.PI * 2, 0, Math.PI/2);
     const leftEyelid = new THREE.Mesh(eyelidGeo, furMaterial);
     leftEyelid.position.copy(leftEye.position);
-    leftEyelid.rotation.x = -Math.PI / 4; // Open state
+    leftEyelid.rotation.x = -Math.PI / 3; 
     
     const rightEyelid = new THREE.Mesh(eyelidGeo, furMaterial);
     rightEyelid.position.copy(rightEye.position);
-    rightEyelid.rotation.x = -Math.PI / 4; // Open state
+    rightEyelid.rotation.x = -Math.PI / 3;
 
     headGroup.add(leftEye, rightEye, leftEyelid, rightEyelid);
 
 
-    // 3. Legs
-    // Front Legs (Straight down from chest)
-    const frontLegGeo = new THREE.CylinderGeometry(0.15, 0.12, 1.8, 12);
-    const flLeg = new THREE.Mesh(frontLegGeo, furMaterial);
-    flLeg.position.set(0.35, -1.0, 0.6); // Attached to upper chest
-    flLeg.rotation.x = Math.PI / 4; // Vertical relative to world (counter torso)
-    flLeg.castShadow = true;
+    // 5. Front Legs
+    // Shoulders (embedded in chest)
+    const shoulderGeo = new THREE.SphereGeometry(0.35, 16, 16);
+    shoulderGeo.scale(0.8, 1, 0.8);
     
-    const frLeg = new THREE.Mesh(frontLegGeo, furMaterial);
-    frLeg.position.set(-0.35, -1.0, 0.6);
-    frLeg.rotation.x = Math.PI / 4;
-    frLeg.castShadow = true;
+    const leftShoulder = new THREE.Mesh(shoulderGeo, furMaterial);
+    leftShoulder.position.set(0.4, 1.3, 0.5);
+    catGroup.add(leftShoulder);
+
+    const rightShoulder = new THREE.Mesh(shoulderGeo, furMaterial);
+    rightShoulder.position.set(-0.4, 1.3, 0.5);
+    catGroup.add(rightShoulder);
+
+    // Legs
+    const legGeo = new THREE.CylinderGeometry(0.13, 0.11, 1.3, 16);
     
-    torsoGroup.add(flLeg, frLeg);
+    const leftLeg = new THREE.Mesh(legGeo, furMaterial);
+    leftLeg.position.set(0.4, 0.65, 0.55);
+    leftLeg.castShadow = true;
+    catGroup.add(leftLeg);
+
+    const rightLeg = new THREE.Mesh(legGeo, furMaterial);
+    rightLeg.position.set(-0.4, 0.65, 0.55);
+    rightLeg.castShadow = true;
+    catGroup.add(rightLeg);
 
     // Paws (Front)
-    const pawGeo = new THREE.SphereGeometry(0.18, 16, 16);
-    pawGeo.scale(1, 0.6, 1.2);
+    const pawGeo = new THREE.SphereGeometry(0.16, 16, 16);
+    pawGeo.scale(1.1, 0.6, 1.3);
+    
     const flPaw = new THREE.Mesh(pawGeo, furMaterial);
-    flPaw.position.set(0, -0.9, 0.1); // Relative to leg
-    flLeg.add(flPaw);
+    flPaw.position.set(0, -0.65, 0.05);
+    leftLeg.add(flPaw);
     
     const frPaw = new THREE.Mesh(pawGeo, furMaterial);
-    frPaw.position.set(0, -0.9, 0.1);
-    frLeg.add(frPaw);
+    frPaw.position.set(0, -0.65, 0.05);
+    rightLeg.add(frPaw);
 
-    // Hind Legs (Folded Haunches)
-    // Thigh (Large sphere/ellipsoid)
-    const thighGeo = new THREE.SphereGeometry(0.6, 24, 24);
-    thighGeo.scale(0.8, 1.2, 1);
+
+    // 6. Hind Legs (Sitting Haunches)
+    const thighGeo = new THREE.SphereGeometry(0.55, 32, 32);
+    thighGeo.scale(0.8, 1.3, 1.1); // Vertical oval shape
     
     const leftThigh = new THREE.Mesh(thighGeo, furMaterial);
-    leftThigh.position.set(0.6, -1.0, -0.2); // Base of torso
-    leftThigh.rotation.z = -0.2;
+    leftThigh.position.set(0.6, 0.6, -0.1); // Side of hips
+    leftThigh.rotation.set(0, 0.2, -0.2);
     leftThigh.castShadow = true;
-    
+    catGroup.add(leftThigh);
+
     const rightThigh = new THREE.Mesh(thighGeo, furMaterial);
-    rightThigh.position.set(-0.6, -1.0, -0.2);
-    rightThigh.rotation.z = 0.2;
+    rightThigh.position.set(-0.6, 0.6, -0.1);
+    rightThigh.rotation.set(0, -0.2, 0.2);
     rightThigh.castShadow = true;
+    catGroup.add(rightThigh);
 
-    torsoGroup.add(leftThigh, rightThigh);
+    // Hind Paws (Peeking out front)
+    const hindPawGeo = new THREE.SphereGeometry(0.16, 16, 16);
+    hindPawGeo.scale(1.1, 0.6, 1.3);
 
-    // Lower Hind Leg (Tucked) & Hind Paw
-    // Note: CapsuleGeometry is not available in r128, utilizing Cylinder as approximation
-    const hindFootGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.8, 8);
-    
-    const leftHindFoot = new THREE.Mesh(hindFootGeo, furMaterial);
-    leftHindFoot.rotation.x = Math.PI / 2; // Flat on ground
-    leftHindFoot.position.set(0.1, -0.5, 0.4); // Sticking out from thigh
-    leftThigh.add(leftHindFoot);
-    
-    const rightHindFoot = new THREE.Mesh(hindFootGeo, furMaterial);
-    rightHindFoot.rotation.x = Math.PI / 2;
-    rightHindFoot.position.set(-0.1, -0.5, 0.4);
-    rightThigh.add(rightHindFoot);
+    const leftHindPaw = new THREE.Mesh(hindPawGeo, furMaterial);
+    leftHindPaw.position.set(0.65, 0.1, 0.55); // Near front leg
+    catGroup.add(leftHindPaw);
+
+    const rightHindPaw = new THREE.Mesh(hindPawGeo, furMaterial);
+    rightHindPaw.position.set(-0.65, 0.1, 0.55);
+    catGroup.add(rightHindPaw);
 
 
-    // 4. Tail
-    // Chain of cylinders/spheres
+    // 7. Tail
     const tailBones = [];
-    let parent = torsoGroup;
-    let prevPos = new THREE.Vector3(0, -1.2, -0.5); // Base of spine
+    let parent = catGroup;
+    let prevPos = new THREE.Vector3(0, 0.15, -0.6); // Base of tail at bottom of hips
     
-    for(let i=0; i<8; i++) {
-        const radius = 0.15 - (i * 0.015);
-        const height = 0.4;
-        const tailSegGeo = new THREE.CylinderGeometry(radius, radius*0.9, height, 8);
-        tailSegGeo.translate(0, height/2, 0); // Pivot at base
+    for(let i=0; i<9; i++) {
+        const radius = 0.14 - (i * 0.012);
+        const length = 0.35;
+        const tailSegGeo = new THREE.CylinderGeometry(radius, radius * 0.9, length, 12);
+        tailSegGeo.translate(0, length/2, 0); // Pivot at base
         
         const seg = new THREE.Mesh(tailSegGeo, furMaterial);
         
         if(i === 0) {
             seg.position.copy(prevPos);
-            // Orient out from body
-            seg.rotation.x = 2; 
+            seg.rotation.x = Math.PI/2; // Out back
+            seg.rotation.y = Math.PI/2; // Wrap side
         } else {
-            seg.position.set(0, height, 0); // Stack on previous
-            // Curl around
-            seg.rotation.x = 0.2; 
-            seg.rotation.z = 0.3; // Curl to side
+            seg.position.set(0, length * 0.9, 0); // Stack
+            seg.rotation.z = 0.35; // Curve around
         }
         
         parent.add(seg);
@@ -232,17 +257,16 @@ export function createCatModel() {
         tailBones.push(seg);
     }
 
-
-    // Reference holders for animation
+    // Return parts for animation
     return {
         mesh: catGroup,
         parts: {
             head: headGroup,
-            leftEar,
-            rightEar,
+            leftEar: leftEarGroup,
+            rightEar: rightEarGroup,
             leftEyelid,
             rightEyelid,
-            body: bodyMesh,
+            body: chest, // Breathe on chest
             tail: tailBones
         }
     };

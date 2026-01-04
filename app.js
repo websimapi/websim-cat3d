@@ -34,27 +34,32 @@ const App = () => {
         renderer.toneMappingExposure = 1.0;
         containerRef.current.appendChild(renderer.domElement);
 
-        // --- Lighting (Prompt Specific) ---
-        // 1. Hemisphere
-        const hemiLight = new THREE.HemisphereLight(0xB8D4E8, 0x6B5844, 0.4);
+        // --- Lighting (Refined) ---
+        // 1. Hemisphere - Warmer ground, clearer sky
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x443322, 0.6);
         scene.add(hemiLight);
 
-        // 2. Key Light (Directional)
-        const keyLight = new THREE.DirectionalLight(0xFFF8E7, 1.2);
-        keyLight.position.set(5, 8, 5);
+        // 2. Key Light (Sunlight)
+        const keyLight = new THREE.DirectionalLight(0xFFF5E0, 1.1);
+        keyLight.position.set(5, 8, 6);
         keyLight.castShadow = true;
         keyLight.shadow.mapSize.width = 2048;
         keyLight.shadow.mapSize.height = 2048;
-        keyLight.shadow.bias = -0.0001;
+        keyLight.shadow.bias = -0.0005;
         scene.add(keyLight);
 
-        // 3. Rim Light (Cool)
-        const rimLight = new THREE.DirectionalLight(0xC4D9F2, 0.5);
-        rimLight.position.set(-3, 2, -5);
+        // 3. Fill Light (Soft)
+        const fillLight = new THREE.DirectionalLight(0xE8DBC5, 0.4);
+        fillLight.position.set(-4, 2, 2);
+        scene.add(fillLight);
+
+        // 4. Rim Light (Backlight for fur edge)
+        const rimLight = new THREE.DirectionalLight(0xFFFFFF, 0.4);
+        rimLight.position.set(0, 4, -5);
         scene.add(rimLight);
 
-        // 4. Ambient Occlusion (Simulated via AmbientLight for simplicity in ThreeJS basic)
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+        // 5. Soft Ambient
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
         scene.add(ambientLight);
 
         // --- Floor ---
