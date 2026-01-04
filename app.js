@@ -153,38 +153,54 @@ const App = () => {
         const updateCatPose = (parts, factor, walkTime) => {
             // factor: 0 = Sit, 1 = Stand
             
-            // 1. Hips Height
-            // Sit: 0.55, Stand: 1.15
-            parts.hips.position.y = THREE.MathUtils.lerp(0.55, 1.15, factor);
+            // 1. Body Positioning (Hips & Chest)
+            // We want a significant elongation when standing.
             
-            // 2. Chest Adjustment
-            // Sit: 1.45, Stand: 1.35 (Shoulders dip slightly when walking)
-            parts.chest.position.y = THREE.MathUtils.lerp(1.45, 1.35, factor);
-            // Chest moves forward relative to hips when standing
-            parts.chest.position.z = THREE.MathUtils.lerp(0.3, 0.4, factor);
-
-            // 3. Belly Stretch
-            // Calculate midpoint and scale
-            const hipPos = parts.hips.position.clone();
-            const chestPos = parts.chest.position.clone();
-            const dist = hipPos.distanceTo(chestPos);
+            // Hips: Sit at (0, 0.55, 0). Stand at (0, 1.05, -0.3) -> Move back and up
+            parts.hips.position.y = THREE.MathUtils.lerp(0.55, 1.05, factor);
+            parts.hips.position.z = THREE.MathUtils.lerp(0.0, -0.3, factor);
             
-            parts.belly.position.copy(hipPos).lerp(chestPos, 0.5);
-            parts.belly.lookAt(chestPos);
-            parts.belly.scale.set(1.05, 0.95, dist * 0.9); // Stretch Z axis
+            // Chest: Sit at (0, 1.45, 0.3). Stand at (0, 1.15, 1.3) -> Move forward and level out
+            parts.chest.position.y = THREE.MathUtils.lerp(1.45, 1.15, factor);
+            parts.chest.position.z = THREE.MathUtils.lerp(0.3, 1.3, factor);
 
-            // 4. Head follow
-            parts.head.position.y = parts.chest.position.y + 0.8;
-            parts.head.position.z = parts.chest.position.z + 0.15;
-            parts.neck.position.y = parts.chest.position.y + 0.45;
-            parts.neck.position.z = parts.chest.position.z + 0.05;
+            // 2. Leg Attachment Sync
+            // Legs are in world space (children of catGroup), so we must manually move them to follow body parts.
+            
+            // Front Legs -> Follow Chest
+            // Offset: x +/- 0.35, y -0.15, z +0.1
+            const chestP = parts.chest.position;
+            parts.frontLeftLeg.position.set(0.35, chestP.y - 0.15, chestP.z + 0.1);
+            parts.frontRightLeg.position.set(-0.35, chestP.y - 0.15, chestP.z + 0.1);
 
-            // 5. Hind Legs Articulation
-            // Sync pivot Y with hips (hips move up/down)
-            // Pivot is child of scene, so we need to move it to match hip height
-            parts.hindLeftLeg.position.y = parts.hips.position.y + 0.1;
-            parts.hindRightLeg.position.y = parts.hips.position.y + 0.1;
+            // Hind Legs -> Follow Hips
+            // Offset: x +/- 0.6, y +0.1, z +0.15
+            const hipsP = parts.hips.position;
+            parts.hindLeftLeg.position.set(0.6, hipsP.y + 0.1, hipsP.z + 0.15);
+            parts.hindRightLeg.position.set(-0.6, hipsP.y + 0.1, hipsP.z + 0.15);
 
+            // 3. Tail Attachment
+            // Tail[0] must follow Hips
+            // Offset: y -0.1, z -0.65
+            if (parts.tail && parts.tail.length > 0) {
+                parts.tail[0].position.set(0, hipsP.y - 0.1, hipsP.z - 0.65);
+            }
+
+            // 4. Belly Stretch (Connect Hips and Chest)
+            const dist = hipsP.distanceTo(chestP);
+            parts.belly.position.copy(hipsP).lerp(chestP, 0.5);
+            parts.belly.lookAt(chestP);
+            // Scale X/Y down slightly as we stretch Z to conserve volume look
+            const volScale = THREE.MathUtils.lerp(1.0, 0.85, factor);
+            parts.belly.scale.set(1.05 * volScale, 0.95 * volScale, dist * 0.85);
+
+            // 5. Head & Neck follow Chest
+            parts.head.position.y = chestP.y + 0.8;
+            parts.head.position.z = chestP.z + 0.15;
+            parts.neck.position.y = chestP.y + 0.45;
+            parts.neck.position.z = chestP.z + 0.05;
+
+            // 6. Leg Articulation (Rotations)
             // Define Angles
             // Sit: Thighs Fwd (1.0), Knee Folded (-2.3), Ankle Folded (1.3)
             // Stand: Thighs Vertical (-0.2), Knee Straight (0.4), Ankle Straight (-0.4)

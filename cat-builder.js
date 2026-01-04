@@ -327,6 +327,7 @@ export function createCatModel() {
     const tailBones = [];
     let parent = catGroup;
     // Base of tail at lower spine/hips
+    // Initial position for sitting pose
     let prevPos = new THREE.Vector3(0, 0.45, -0.65); 
     
     const numTailSegs = 16;
