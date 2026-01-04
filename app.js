@@ -107,85 +107,66 @@ const App = () => {
                 const breathFactor = 1 + Math.sin(time * 4) * 0.02; // 1.5 sec cycle approx
                 parts.body.scale.set(1 * breathFactor, 1, 1 * breathFactor);
 
-                // 2. Tail Movement (Wave)
+                // 2. Tail Movement (Wave) & Ground Collision
+                // Update parent world matrices to ensure accurate chain positioning
+                catData.mesh.updateMatrixWorld();
+
                 parts.tail.forEach((seg, i) => {
                     if (seg.userData.baseRot) {
-                        // Apply wave relative to base rotation
+                        // --- A. Procedural Animation ---
                         const waveSpeed = 2;
                         const waveOffset = i * 0.3;
                         const waveAmp = 0.06;
                         
-                        // Main wave on Z (curling axis)
                         const waveZ = Math.sin(time * waveSpeed - waveOffset) * waveAmp;
-                        seg.rotation.z = seg.userData.baseRot.z + waveZ;
-
-                        // Slight secondary motion
                         const waveX = Math.cos(time * waveSpeed * 0.5 - waveOffset) * (waveAmp * 0.5);
+                        
+                        seg.rotation.z = seg.userData.baseRot.z + waveZ;
                         seg.rotation.x = seg.userData.baseRot.x + waveX;
                         
-                        // Tip twitch
                         if(i === parts.tail.length - 1) {
                             seg.rotation.y = seg.userData.baseRot.y + Math.sin(time * 10) * 0.15;
                         } else {
                             seg.rotation.y = seg.userData.baseRot.y;
                         }
-                    }
-                });
 
-                // Tail Ground Collision (Post-Correction)
-                // We iterate from root to tip to ensure parent transforms are valid
-                parts.tail.forEach((seg) => {
-                    // Update this segment's world matrix (and parents if needed, though they should be up to date)
-                    seg.updateMatrixWorld();
-                    
-                    const len = seg.userData.length || 0.15;
-                    const radius = seg.userData.radius || 0.05;
-                    
-                    // 1. Get positions
-                    const basePos = new THREE.Vector3().setFromMatrixPosition(seg.matrixWorld);
-                    const tipLocal = new THREE.Vector3(0, len, 0);
-                    const tipPos = tipLocal.clone().applyMatrix4(seg.matrixWorld);
-                    
-                    // 2. Check height
-                    const groundMargin = radius * 0.9; // Allow a tiny bit of mesh sink for contact look
-                    if (tipPos.y < groundMargin) {
-                        // Vector from base to tip
-                        const vec = new THREE.Vector3().subVectors(tipPos, basePos);
-                        
-                        // We want the new tip Y to be at least groundMargin
-                        // So the new vertical component of vec should be (groundMargin - basePos.y)
-                        // But we must respect the segment length.
-                        let targetY = groundMargin - basePos.y;
-                        
-                        // If base is already below ground (unlikely given setup), clamp target
-                        if (targetY > len) targetY = len;
-                        
-                        // Angle math
-                        // Current vertical sine component
-                        const currentSin = vec.y / len;
-                        // Target vertical sine component
-                        const targetSin = targetY / len;
-                        
-                        // Clamp sines to -1..1 to avoid NaN
-                        const currentAngle = Math.asin(Math.max(-1, Math.min(1, currentSin)));
-                        const targetAngle = Math.asin(Math.max(-1, Math.min(1, targetSin)));
-                        
-                        const angleDiff = targetAngle - currentAngle;
-                        
-                        if (angleDiff > 0.0001) {
-                            // Rotate around axis perpendicular to the tail and World UP
-                            // Vector is 'vec', Up is (0,1,0).
-                            const axis = new THREE.Vector3().crossVectors(vec, new THREE.Vector3(0, 1, 0)).normalize();
-                            
-                            // If tail is perfectly vertical, axis is zero. Fallback to X axis?
-                            if (axis.lengthSq() < 0.001) {
-                                axis.set(1, 0, 0);
-                            }
+                        // --- B. Ground Collision Check ---
+                        // Update this segment's world matrix to check its proposed position
+                        seg.updateMatrixWorld();
 
-                            // Apply correction
-                            seg.rotateOnWorldAxis(axis, angleDiff);
+                        const segLen = seg.userData.length || 0.15;
+                        const segRad = seg.userData.radius || 0.05;
+                        
+                        // Check tip position in world space
+                        const tipLocal = new THREE.Vector3(0, segLen, 0);
+                        const tipWorld = tipLocal.applyMatrix4(seg.matrixWorld);
+
+                        const groundLevel = 0;
+                        const clearance = segRad; 
+
+                        if (tipWorld.y < groundLevel + clearance) {
+                            // Calculate penetration depth
+                            const penetration = (groundLevel + clearance) - tipWorld.y;
                             
-                            // Essential: Update matrix immediately so children inherit the lift
+                            // Calculate correction angle to lift tip
+                            // sin(angle) = penetration / hypotenuse(length)
+                            const sinVal = Math.min(1.0, penetration / segLen);
+                            const correctionAngle = Math.asin(sinVal);
+
+                            // Determine rotation axis: Perpendicular to Segment Vector and World Up
+                            const baseWorld = new THREE.Vector3().setFromMatrixPosition(seg.matrixWorld);
+                            const segVec = new THREE.Vector3().subVectors(tipWorld, baseWorld).normalize();
+                            const upVec = new THREE.Vector3(0, 1, 0);
+                            
+                            const axis = new THREE.Vector3().crossVectors(segVec, upVec).normalize();
+                            
+                            // Safety check for degenerate axis (vertical segment)
+                            if (axis.lengthSq() < 0.01) axis.set(1, 0, 0);
+
+                            // Apply correction (rotate quaternion in world space)
+                            seg.rotateOnWorldAxis(axis, correctionAngle);
+                            
+                            // Update matrix so children inherit corrected transform
                             seg.updateMatrixWorld();
                         }
                     }
