@@ -179,75 +179,60 @@ const App = () => {
             parts.neck.position.y = parts.chest.position.y + 0.45;
             parts.neck.position.z = parts.chest.position.z + 0.05;
 
-            // 5. Hind Legs Pivot
-            // Sync pivot Y with hips
-            parts.hindLeftLeg.position.y = parts.hips.position.y + 0.05;
-            parts.hindRightLeg.position.y = parts.hips.position.y + 0.05;
+            // 5. Hind Legs Articulation
+            // Sync pivot Y with hips (hips move up/down)
+            // Pivot is child of scene, so we need to move it to match hip height
+            parts.hindLeftLeg.position.y = parts.hips.position.y + 0.1;
+            parts.hindRightLeg.position.y = parts.hips.position.y + 0.1;
+
+            // Define Angles
+            // Sit: Thighs Fwd (1.0), Knee Folded (-2.3), Ankle Folded (1.3)
+            // Stand: Thighs Vertical (-0.2), Knee Straight (0.4), Ankle Straight (-0.4)
             
-            // Rotate thighs to stand
-            // Sit: ~0.2x, Stand: ~0.5x (point back)
-            // But we actually want to straighten them down
-            // Sit: Thighs horizontal-ish. Stand: Thighs vertical-ish
-            const thighRotSit = 0.2; // roughly current
-            const thighRotStand = 0.6; 
+            const hipRot = THREE.MathUtils.lerp(1.2, -0.2, factor);
+            const kneeRot = THREE.MathUtils.lerp(-2.4, 0.6, factor);
+            const ankleRot = THREE.MathUtils.lerp(1.5, -0.5, factor);
+
+            // Apply Base Rotation
+            parts.hindLeftLeg.rotation.x = hipRot;
+            parts.hindRightLeg.rotation.x = hipRot;
+
+            parts.leftShinGroup.rotation.x = kneeRot;
+            parts.rightShinGroup.rotation.x = kneeRot;
             
-            // Note: Our rig has thighs rotating around hip. 
-            // In sit, they are folded. In stand, they extend down.
-            // We'll interpolate group rotation or sub-mesh?
-            // Let's rotate the Group for the walk cycle, but the initial pose is inside the group.
-            // The thigh meshes inside the group have: leftThigh.rotation.set(0, 0.2, -0.2);
-            // We will rotate the GROUP to act as the hip joint.
-            
-            const standRot = 0.8; // Rotate leg group back to straighten leg
-            parts.hindLeftLeg.rotation.x = THREE.MathUtils.lerp(0, standRot, factor);
-            parts.hindRightLeg.rotation.x = THREE.MathUtils.lerp(0, standRot, factor);
-            
-            // 6. Hind Paws
-            // In sit, they are tucked under.
-            // In stand, they need to be on ground.
-            // We parented them to the leg group with a large offset.
-            // We need to counter-rotate or move them to look right.
-            // Or simpler: Just animate their local position/rotation based on factor.
-            
-            // Sit Pos (Local): (0.08, -0.52, 0.65)
-            // Stand Pos (Local target): We want them directly below hip roughly.
-            // When hip rotates back 0.8rad (~45deg), the local point rotates forward/up.
-            // This is complex. Let's just LERP the local position to a "Standing/Walking" local pos.
-            
-            const pawSitPos = new THREE.Vector3(0.08, -0.52, 0.65);
-            const pawStandPos = new THREE.Vector3(0.15, -1.1, 0.2); // Extended down
-            
-            parts.leftHindPaw.position.lerpVectors(pawSitPos, pawStandPos, factor);
-            parts.rightHindPaw.position.lerpVectors(
-                new THREE.Vector3(-pawSitPos.x, pawSitPos.y, pawSitPos.z), 
-                new THREE.Vector3(-pawStandPos.x, pawStandPos.y, pawStandPos.z), 
-                factor
-            );
-            
-            // Adjust paw rotation to be flat on ground
-            // Sit: y=0.2. Stand: x=0 (flat)
-            parts.leftHindPaw.rotation.x = THREE.MathUtils.lerp(0, -0.8, factor); // Counter act leg rot
-            parts.rightHindPaw.rotation.x = THREE.MathUtils.lerp(0, -0.8, factor);
+            parts.leftAnkleGroup.rotation.x = ankleRot;
+            parts.rightAnkleGroup.rotation.x = ankleRot;
 
             // 7. Walk Cycle (Only if factor > 0.5)
             if (factor > 0.1) {
-                const amp = 0.4 * factor; // Scale step size by stand factor
+                const amp = 0.5 * factor; 
                 const freq = walkTime * 10;
                 
-                // Front Legs (Swing)
+                // Front Legs (Swing - Standard pendulum)
                 parts.frontLeftLeg.rotation.x = Math.sin(freq) * amp;
                 parts.frontRightLeg.rotation.x = Math.sin(freq + Math.PI) * amp;
                 
-                // Hind Legs (Swing - Opposite diagonal)
-                // Add to the base standing rotation
-                parts.hindLeftLeg.rotation.x = THREE.MathUtils.lerp(0, standRot, factor) + Math.sin(freq + Math.PI) * amp;
-                parts.hindRightLeg.rotation.x = THREE.MathUtils.lerp(0, standRot, factor) + Math.sin(freq) * amp;
+                // Hind Legs (Complex Swing)
+                // We mainly rotate the Hip, but can add subtle knee motion
+                const lHipOsc = Math.sin(freq + Math.PI) * amp;
+                const rHipOsc = Math.sin(freq) * amp;
                 
+                parts.hindLeftLeg.rotation.x = hipRot + lHipOsc;
+                parts.hindRightLeg.rotation.x = hipRot + rHipOsc;
+                
+                // Knee flexion during swing (lift leg)
+                // When hip is moving forward (swing phase), knee bends more
+                const lKneeOsc = Math.max(0, Math.sin(freq + Math.PI)) * 0.5;
+                const rKneeOsc = Math.max(0, Math.sin(freq)) * 0.5;
+                
+                parts.leftShinGroup.rotation.x = kneeRot + lKneeOsc; // Bend more
+                parts.rightShinGroup.rotation.x = kneeRot + rKneeOsc;
+
                 // Bob Body
-                parts.hips.position.y += Math.abs(Math.sin(freq)) * 0.05 * factor;
-                parts.chest.position.y += Math.abs(Math.sin(freq + Math.PI)) * 0.05 * factor;
+                parts.hips.position.y += Math.abs(Math.sin(freq * 2)) * 0.03 * factor;
+                parts.chest.position.y += Math.sin(freq * 2) * 0.02 * factor;
             } else {
-                 // Reset leg rotations when sitting
+                 // Reset
                 parts.frontLeftLeg.rotation.x = THREE.MathUtils.lerp(parts.frontLeftLeg.rotation.x, 0, 0.1);
                 parts.frontRightLeg.rotation.x = THREE.MathUtils.lerp(parts.frontRightLeg.rotation.x, 0, 0.1);
             }
