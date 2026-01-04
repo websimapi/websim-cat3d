@@ -16,6 +16,7 @@ body, html {
 canvas {
     display: block;
     outline: none;
+    touch-action: none; /* Prevents scrolling on mobile while interacting with the 3D model */
 }
 
 .loading-overlay {
