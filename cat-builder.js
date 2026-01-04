@@ -233,24 +233,46 @@ export function createCatModel() {
     // 7. Tail
     const tailBones = [];
     let parent = catGroup;
-    let prevPos = new THREE.Vector3(0, 0.15, -0.6); // Base of tail at bottom of hips
+    // Base of tail at lower spine/hips
+    let prevPos = new THREE.Vector3(0, 0.45, -0.65); 
     
-    for(let i=0; i<9; i++) {
-        const radius = 0.14 - (i * 0.012);
-        const length = 0.35;
-        const tailSegGeo = new THREE.CylinderGeometry(radius, radius * 0.9, length, 12);
-        tailSegGeo.translate(0, length/2, 0); // Pivot at base
+    const numTailSegs = 16;
+    const tailTotalLen = 2.4;
+    const tailSegLen = tailTotalLen / numTailSegs;
+
+    for(let i=0; i<numTailSegs; i++) {
+        const t = i / numTailSegs;
+        // Smoother taper
+        const radius = 0.13 * (1 - t * 0.5); 
+        
+        const tailSegGeo = new THREE.CylinderGeometry(radius, radius * 0.9, tailSegLen, 16);
+        tailSegGeo.translate(0, tailSegLen/2, 0); // Pivot at base
         
         const seg = new THREE.Mesh(tailSegGeo, furMaterial);
-        
+        const baseRot = new THREE.Euler();
+
         if(i === 0) {
             seg.position.copy(prevPos);
-            seg.rotation.x = Math.PI/2; // Out back
-            seg.rotation.y = Math.PI/2; // Wrap side
+            // Initial: Point down (-x) and back (-z) and slightly right (-y twist) to start the wrap
+            // Note: Euler rotation order plays a part. Default is XYZ.
+            baseRot.set(-2.6, -0.5, -0.5);
         } else {
-            seg.position.set(0, length * 0.9, 0); // Stack
-            seg.rotation.z = 0.35; // Curve around
+            seg.position.set(0, tailSegLen * 0.92, 0); 
+            
+            // Curve logic:
+            // First few segments: curve "up" (local X) to hit floor parallel
+            // Then curve "right" (local Z) to wrap
+            if(i < 5) {
+                // Flattening out from the downward start
+                baseRot.set(0.45, 0, 0.1);
+            } else {
+                // Curling around
+                baseRot.set(0.05, 0, 0.28); 
+            }
         }
+        
+        seg.rotation.copy(baseRot);
+        seg.userData.baseRot = baseRot; // Store for animation
         
         parent.add(seg);
         parent = seg;

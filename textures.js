@@ -7,12 +7,11 @@ export function generateFurTextures() {
     const width = 1024;
     const height = 1024;
     
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-
     // --- 1. Base Color Map (Tabby Pattern) ---
+    const colorCanvas = document.createElement('canvas');
+    colorCanvas.width = 1024;
+    colorCanvas.height = 1024;
+    const ctx = colorCanvas.getContext('2d');
     ctx.fillStyle = '#C9B8A8'; // Base warm gray-beige
     ctx.fillRect(0, 0, width, height);
 
@@ -45,14 +44,19 @@ export function generateFurTextures() {
     ctx.globalCompositeOperation = 'source-over';
     ctx.filter = 'none';
 
-    const colorTexture = new THREE.CanvasTexture(canvas);
+    const colorTexture = new THREE.CanvasTexture(colorCanvas);
     colorTexture.wrapS = THREE.RepeatWrapping;
     colorTexture.wrapT = THREE.RepeatWrapping;
 
     // --- 2. Normal Map (Fur Direction) ---
+    const normalCanvas = document.createElement('canvas');
+    normalCanvas.width = 1024;
+    normalCanvas.height = 1024;
+    const ctxN = normalCanvas.getContext('2d');
+
     // Clear for normal map generation
-    ctx.fillStyle = '#8080ff'; // Flat normal
-    ctx.fillRect(0, 0, width, height);
+    ctxN.fillStyle = '#8080ff'; // Flat normal
+    ctxN.fillRect(0, 0, 1024, 1024);
 
     // Draw thousands of tiny strokes to simulate fur strands
     const numStrands = 15000;
@@ -68,16 +72,16 @@ export function generateFurTextures() {
         const g = Math.floor(128 + Math.cos(angle) * 127);
         const r = Math.floor(128 + Math.sin(angle) * 127);
         
-        ctx.strokeStyle = `rgba(${r}, ${g}, 255, 0.5)`;
-        ctx.lineWidth = 2;
+        ctxN.strokeStyle = `rgba(${r}, ${g}, 255, 0.5)`;
+        ctxN.lineWidth = 2;
         
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
-        ctx.stroke();
+        ctxN.beginPath();
+        ctxN.moveTo(x, y);
+        ctxN.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
+        ctxN.stroke();
     }
 
-    const normalTexture = new THREE.CanvasTexture(canvas);
+    const normalTexture = new THREE.CanvasTexture(normalCanvas);
     normalTexture.wrapS = THREE.RepeatWrapping;
     normalTexture.wrapT = THREE.RepeatWrapping;
 

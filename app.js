@@ -109,13 +109,26 @@ const App = () => {
 
                 // 2. Tail Movement (Wave)
                 parts.tail.forEach((seg, i) => {
-                    // Propagate wave
-                    const wave = Math.sin(time * 2 - i * 0.5) * 0.1;
-                    seg.rotation.z = 0.3 + wave * (i * 0.1); // Base curl + wave
-                    
-                    // Tip twitch
-                    if(i === parts.tail.length - 1) {
-                         seg.rotation.y = Math.sin(time * 15) * 0.1;
+                    if (seg.userData.baseRot) {
+                        // Apply wave relative to base rotation
+                        const waveSpeed = 2;
+                        const waveOffset = i * 0.3;
+                        const waveAmp = 0.06;
+                        
+                        // Main wave on Z (curling axis)
+                        const waveZ = Math.sin(time * waveSpeed - waveOffset) * waveAmp;
+                        seg.rotation.z = seg.userData.baseRot.z + waveZ;
+
+                        // Slight secondary motion
+                        const waveX = Math.cos(time * waveSpeed * 0.5 - waveOffset) * (waveAmp * 0.5);
+                        seg.rotation.x = seg.userData.baseRot.x + waveX;
+                        
+                        // Tip twitch
+                        if(i === parts.tail.length - 1) {
+                            seg.rotation.y = seg.userData.baseRot.y + Math.sin(time * 10) * 0.15;
+                        } else {
+                            seg.rotation.y = seg.userData.baseRot.y;
+                        }
                     }
                 });
 
