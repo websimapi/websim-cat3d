@@ -180,16 +180,6 @@ export function createCatModel() {
     // Legs - Tapered for realism (Thicker at top)
     const legGeo = new THREE.CylinderGeometry(0.18, 0.11, 1.3, 16);
     
-    const leftLeg = new THREE.Mesh(legGeo, furMaterial);
-    leftLeg.position.set(0.4, 0.65, 0.55);
-    leftLeg.castShadow = true;
-    catGroup.add(leftLeg);
-
-    const rightLeg = new THREE.Mesh(legGeo, furMaterial);
-    rightLeg.position.set(-0.4, 0.65, 0.55);
-    rightLeg.castShadow = true;
-    catGroup.add(rightLeg);
-
     // Helper to create detailed paws
     const createPaw = () => {
         const pawGroup = new THREE.Group();
@@ -213,10 +203,29 @@ export function createCatModel() {
         return pawGroup;
     };
 
-    // Paws (Front)
+    // Front Left Leg Group (Pivot at shoulder)
+    const flLegGroup = new THREE.Group();
+    flLegGroup.position.set(0.4, 1.3, 0.55); // Shoulder pivot
+    catGroup.add(flLegGroup);
+
+    const leftLeg = new THREE.Mesh(legGeo, furMaterial);
+    leftLeg.position.set(0, -0.65, 0); // Offset geometry down from pivot
+    leftLeg.castShadow = true;
+    flLegGroup.add(leftLeg);
+
     const flPaw = createPaw();
     flPaw.position.set(0, -0.65, 0.08);
     leftLeg.add(flPaw);
+
+    // Front Right Leg Group
+    const frLegGroup = new THREE.Group();
+    frLegGroup.position.set(-0.4, 1.3, 0.55); // Shoulder pivot
+    catGroup.add(frLegGroup);
+
+    const rightLeg = new THREE.Mesh(legGeo, furMaterial);
+    rightLeg.position.set(0, -0.65, 0);
+    rightLeg.castShadow = true;
+    frLegGroup.add(rightLeg);
     
     const frPaw = createPaw();
     frPaw.position.set(0, -0.65, 0.08);
@@ -227,20 +236,33 @@ export function createCatModel() {
     const thighGeo = new THREE.SphereGeometry(0.55, 32, 32);
     thighGeo.scale(0.8, 1.3, 1.1); // Vertical oval shape
     
+    // Left Hind Leg Group
+    const hlLegGroup = new THREE.Group();
+    hlLegGroup.position.set(0.6, 0.6, -0.1); // Hip Pivot
+    catGroup.add(hlLegGroup);
+
     const leftThigh = new THREE.Mesh(thighGeo, furMaterial);
-    leftThigh.position.set(0.6, 0.6, -0.1); // Side of hips
-    leftThigh.rotation.set(0, 0.2, -0.2);
+    leftThigh.position.set(0, 0, 0); // Centered on pivot
+    leftThigh.rotation.set(0, 0.2, -0.2); // Initial Sit Rotation
     leftThigh.castShadow = true;
-    catGroup.add(leftThigh);
+    hlLegGroup.add(leftThigh);
+
+    // Right Hind Leg Group
+    const hrLegGroup = new THREE.Group();
+    hrLegGroup.position.set(-0.6, 0.6, -0.1);
+    catGroup.add(hrLegGroup);
 
     const rightThigh = new THREE.Mesh(thighGeo, furMaterial);
-    rightThigh.position.set(-0.6, 0.6, -0.1);
+    rightThigh.position.set(0, 0, 0);
     rightThigh.rotation.set(0, -0.2, 0.2);
     rightThigh.castShadow = true;
-    catGroup.add(rightThigh);
+    hrLegGroup.add(rightThigh);
 
-    // Hind Paws (Peeking out front)
-    // Slightly different shape for hind paws
+    // Hind Paws
+    // For a simple procedural rig without complex IK chains, 
+    // we will parent paws to the leg groups but offset them significantly.
+    // When standing, we'll need to adjust their local position/rotation to reach ground.
+    
     const createHindPaw = () => {
         const group = new THREE.Group();
         const palmGeo = new THREE.SphereGeometry(0.16, 16, 16);
@@ -263,14 +285,19 @@ export function createCatModel() {
     }
 
     const leftHindPaw = createHindPaw();
-    leftHindPaw.position.set(0.68, 0.08, 0.55); 
-    leftHindPaw.rotation.y = 0.2; // Angle out slightly
-    catGroup.add(leftHindPaw);
+    // Sitting pos relative to hip pivot:
+    // Global sit pos was (0.68, 0.08, 0.55)
+    // Pivot at (0.6, 0.6, -0.1)
+    // Delta: (0.08, -0.52, 0.65)
+    leftHindPaw.position.set(0.08, -0.52, 0.65);
+    leftHindPaw.rotation.y = 0.2; 
+    hlLegGroup.add(leftHindPaw);
 
     const rightHindPaw = createHindPaw();
-    rightHindPaw.position.set(-0.68, 0.08, 0.55);
+    // Delta: (-0.08, -0.52, 0.65)
+    rightHindPaw.position.set(-0.08, -0.52, 0.65);
     rightHindPaw.rotation.y = -0.2;
-    catGroup.add(rightHindPaw);
+    hrLegGroup.add(rightHindPaw);
 
 
     // 7. Tail
@@ -326,12 +353,26 @@ export function createCatModel() {
     return {
         mesh: catGroup,
         parts: {
+            hips,
+            chest, // Upper body
+            belly, // Connecting sphere
             head: headGroup,
+            neck,
+            
+            // Groups for animation
+            frontLeftLeg: flLegGroup,
+            frontRightLeg: frLegGroup,
+            hindLeftLeg: hlLegGroup,
+            hindRightLeg: hrLegGroup,
+            
+            // Sub-parts for detail
+            leftHindPaw,
+            rightHindPaw,
+
             leftEar: leftEarGroup,
             rightEar: rightEarGroup,
             leftEyelid,
             rightEyelid,
-            body: chest, // Breathe on chest
             tail: tailBones
         }
     };
