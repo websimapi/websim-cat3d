@@ -55,11 +55,11 @@ export function generateFurTextures() {
     ctx.fillRect(0, 0, width, height);
 
     // Draw thousands of tiny strokes to simulate fur strands
-    const numStrands = 40000;
+    const numStrands = 15000;
     for (let i = 0; i < numStrands; i++) {
         const x = Math.random() * width;
         const y = Math.random() * height;
-        const length = 5 + Math.random() * 10;
+        const length = 8 + Math.random() * 12;
         const angle = Math.PI / 2 + (Math.random() - 0.5) * 0.5; // Mostly vertical flow (down body)
 
         // Create normal direction encoded in color
@@ -68,8 +68,8 @@ export function generateFurTextures() {
         const g = Math.floor(128 + Math.cos(angle) * 127);
         const r = Math.floor(128 + Math.sin(angle) * 127);
         
-        ctx.strokeStyle = `rgba(${r}, ${g}, 255, 0.4)`;
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = `rgba(${r}, ${g}, 255, 0.5)`;
+        ctx.lineWidth = 2;
         
         ctx.beginPath();
         ctx.moveTo(x, y);

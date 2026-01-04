@@ -166,7 +166,10 @@ const App = () => {
         // Cleanup
         return () => {
             window.removeEventListener('resize', handleResize);
-            containerRef.current.removeChild(renderer.domElement);
+            if (containerRef.current && renderer.domElement) {
+                containerRef.current.removeChild(renderer.domElement);
+            }
+            controls.dispose();
             renderer.dispose();
         };
 
