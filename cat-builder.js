@@ -56,7 +56,7 @@ export function createCatModel() {
     // Belly (Connecting Hips and Chest seamlessly)
     // We use a sphere to bridge the gap and smooth the transition, replacing the rigid cylinder
     const bellyGeo = new THREE.SphereGeometry(0.64, 32, 32);
-    bellyGeo.scale(1.05, 0.95, 1.1);
+    bellyGeo.scale(0.92, 0.95, 0.95); // Slimmer to reduce clipping
     const belly = new THREE.Mesh(bellyGeo, furMaterial);
     
     // Position belly to blend hips and chest
@@ -173,12 +173,12 @@ export function createCatModel() {
     shoulderGeo.scale(0.9, 1, 1.1); // Slightly elongated back
     
     const leftShoulder = new THREE.Mesh(shoulderGeo, furMaterial);
-    leftShoulder.position.set(0.35, 1.3, 0.4); // Moved Back and In
-    catGroup.add(leftShoulder);
+    leftShoulder.position.set(0.45, -0.1, 0.4); // Attached to Chest (Relative Pos)
+    chest.add(leftShoulder);
 
     const rightShoulder = new THREE.Mesh(shoulderGeo, furMaterial);
-    rightShoulder.position.set(-0.35, 1.3, 0.4);
-    catGroup.add(rightShoulder);
+    rightShoulder.position.set(-0.45, -0.1, 0.4);
+    chest.add(rightShoulder);
 
     // Legs - Tapered (Thinner but muscular)
     const legGeo = new THREE.CylinderGeometry(0.17, 0.12, 1.3, 16);
@@ -209,7 +209,7 @@ export function createCatModel() {
 
     // Front Left Leg Group (Pivot at shoulder)
     const flLegGroup = new THREE.Group();
-    flLegGroup.position.set(0.35, 1.3, 0.4); 
+    flLegGroup.position.set(0.45, 1.35, 0.7); // Wider and Forward
     catGroup.add(flLegGroup);
 
     const leftLeg = new THREE.Mesh(legGeo, furMaterial);
@@ -223,7 +223,7 @@ export function createCatModel() {
 
     // Front Right Leg Group
     const frLegGroup = new THREE.Group();
-    frLegGroup.position.set(-0.35, 1.3, 0.4); 
+    frLegGroup.position.set(-0.45, 1.35, 0.7); // Wider and Forward
     catGroup.add(frLegGroup);
 
     const rightLeg = new THREE.Mesh(legGeo, furMaterial);

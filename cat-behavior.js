@@ -191,8 +191,9 @@ export class CatBehavior {
 
         // 2. Leg Attachments
         const chestP = parts.chest.position;
-        parts.frontLeftLeg.position.set(0.35, chestP.y - 0.15, chestP.z + 0.1);
-        parts.frontRightLeg.position.set(-0.35, chestP.y - 0.15, chestP.z + 0.1);
+        // Adjusted offsets to prevent clipping (Wider X, More Forward Z)
+        parts.frontLeftLeg.position.set(0.45, chestP.y - 0.1, chestP.z + 0.4);
+        parts.frontRightLeg.position.set(-0.45, chestP.y - 0.1, chestP.z + 0.4);
 
         const hipsP = parts.hips.position;
         parts.hindLeftLeg.position.set(0.6, hipsP.y + 0.1, hipsP.z + 0.15);
