@@ -66,11 +66,14 @@ export function createCatModel() {
     belly.castShadow = true;
     catGroup.add(belly);
 
-    // 3. Neck
-    const neckGeo = new THREE.CylinderGeometry(0.38, 0.5, 0.6, 24);
+    // 3. Neck (Organic connection)
+    // Using a sphere elongated along Z to bridge chest and head dynamically
+    const neckGeo = new THREE.SphereGeometry(0.45, 32, 32);
+    // Initial scale - will be dynamic, but setting base shape
+    // Elongated on Z so lookAt works for orientation
+    neckGeo.scale(1.1, 1.1, 1.4); 
     const neck = new THREE.Mesh(neckGeo, furMaterial);
-    neck.position.set(0, 1.9, 0.35); 
-    neck.rotation.x = 0.15;
+    neck.position.set(0, 1.85, 0.35); 
     catGroup.add(neck);
 
     // 4. Head Group
@@ -177,8 +180,8 @@ export function createCatModel() {
     rightShoulder.position.set(-0.35, 1.3, 0.4);
     catGroup.add(rightShoulder);
 
-    // Legs - Tapered (Thinner)
-    const legGeo = new THREE.CylinderGeometry(0.14, 0.10, 1.3, 16);
+    // Legs - Tapered (Thinner but muscular)
+    const legGeo = new THREE.CylinderGeometry(0.17, 0.12, 1.3, 16);
     
     // Helper to create detailed paws
     const createPaw = () => {

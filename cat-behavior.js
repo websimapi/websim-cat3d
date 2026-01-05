@@ -212,9 +212,20 @@ export class CatBehavior {
 
         // Head follow
         parts.head.position.y = chestP.y + 0.8;
-        parts.head.position.z = chestP.z + 0.15;
-        parts.neck.position.y = chestP.y + 0.45;
-        parts.neck.position.z = chestP.z + 0.05;
+        parts.head.position.z = chestP.z + 0.25; // Adjusted slightly forward for new neck
+
+        // Neck Logic (Dynamic Bridge)
+        const headP = parts.head.position;
+        const neckDist = chestP.distanceTo(headP);
+        
+        // Position neck halfway between chest and head
+        parts.neck.position.copy(chestP).lerp(headP, 0.5);
+        parts.neck.lookAt(headP);
+        
+        // Stretch neck based on distance
+        // Base scale (1.1 width, 1.4 length)
+        // We modulate the Z scale (length) based on actual distance
+        parts.neck.scale.set(1.1, 1.1, neckDist * 1.1);
 
         // 3. Leg Articulation
         const hipRot = THREE.MathUtils.lerp(1.2, -0.2, factor);
