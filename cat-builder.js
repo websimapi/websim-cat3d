@@ -116,10 +116,11 @@ export function createCatModel() {
     muzzleGroup.add(jaw);
 
     // Nose (Pink tip)
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.05, 3), skinMaterial);
-    nose.rotation.x = Math.PI/2;
-    nose.rotation.z = Math.PI;
-    nose.position.set(0, 0.05, 0.35); // On tip of muzzle
+    const noseGeo = new THREE.SphereGeometry(0.07, 12, 12);
+    noseGeo.scale(1.2, 0.8, 0.7); // Anatomical nose shape
+    const nose = new THREE.Mesh(noseGeo, skinMaterial);
+    // Moved closer to muzzle (0.22 instead of 0.35) and slightly up for better placement
+    nose.position.set(0, 0.08, 0.22); 
     muzzleGroup.add(nose);
 
     // Ears
