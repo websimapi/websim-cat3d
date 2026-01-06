@@ -19,6 +19,7 @@ const App = () => {
         // Init Cat
         const catData = createCatModel();
         sceneManager.add(catData.mesh);
+        sceneManager.setFollowTarget(catData.mesh);
         setIsLoaded(true);
 
         const catBehavior = new CatBehavior(catData);

@@ -94,7 +94,28 @@ export class SceneManager {
         this.scene.add(object);
     }
 
+    setFollowTarget(target) {
+        this.followTarget = target;
+    }
+
     update() {
+        if (this.followTarget && this.controls) {
+            // Get current world position of the cat
+            const targetPos = new THREE.Vector3();
+            this.followTarget.getWorldPosition(targetPos);
+            
+            // Focus on the upper body/head area rather than the floor
+            targetPos.y += 1.2;
+
+            // Calculate how much the target moved since last frame
+            const delta = new THREE.Vector3().subVectors(targetPos, this.controls.target);
+            
+            // Shift both the camera and the control target by that delta
+            // This maintains the user's current orbital offset while following the movement
+            this.camera.position.add(delta);
+            this.controls.target.copy(targetPos);
+        }
+
         if (this.controls) this.controls.update();
         if (this.renderer && this.scene && this.camera) {
             this.renderer.render(this.scene, this.camera);
