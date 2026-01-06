@@ -1,11 +1,17 @@
 import * as THREE from 'three';
 import { generateFurTextures, generateEyeTexture } from './textures.js';
 
-export function createCatModel() {
+export function createCatModel(options = {}) {
     const catGroup = new THREE.Group();
     
+    const {
+        baseColor = '#C9B8A8',
+        stripeColor = '#8B7D6B',
+        eyeHue = 40
+    } = options;
+
     // Materials
-    const { colorTexture, normalTexture } = generateFurTextures();
+    const { colorTexture, normalTexture } = generateFurTextures(baseColor, stripeColor);
     
     const furMaterial = new THREE.MeshStandardMaterial({
         map: colorTexture,
@@ -21,7 +27,7 @@ export function createCatModel() {
         roughness: 0.5,
     });
 
-    const eyeMap = generateEyeTexture();
+    const eyeMap = generateEyeTexture(eyeHue);
     const eyeMaterial = new THREE.MeshPhysicalMaterial({
         map: eyeMap,
         color: 0xffffff,

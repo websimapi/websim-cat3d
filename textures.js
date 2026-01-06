@@ -3,23 +3,23 @@ import * as THREE from 'three';
 /**
  * Generates procedural fur textures (Color, Normal, Roughness)
  */
-export function generateFurTextures() {
-    const width = 1024;
-    const height = 1024;
+export function generateFurTextures(baseColor = '#C9B8A8', stripeColor = '#8B7D6B') {
+    const width = 512;
+    const height = 512;
     
     // --- 1. Base Color Map (Tabby Pattern) ---
     const colorCanvas = document.createElement('canvas');
-    colorCanvas.width = 1024;
-    colorCanvas.height = 1024;
+    colorCanvas.width = width;
+    colorCanvas.height = height;
     const ctx = colorCanvas.getContext('2d');
-    ctx.fillStyle = '#C9B8A8'; // Base warm gray-beige
+    ctx.fillStyle = baseColor;
     ctx.fillRect(0, 0, width, height);
 
     // Add noise grain
     addNoise(ctx, width, height, 0.05);
 
     // Tabby Stripes
-    ctx.strokeStyle = '#8B7D6B'; // Darker stripe color
+    ctx.strokeStyle = stripeColor;
     ctx.lineWidth = 20;
     ctx.filter = 'blur(10px)';
     
@@ -50,13 +50,13 @@ export function generateFurTextures() {
 
     // --- 2. Normal Map (Fur Direction) ---
     const normalCanvas = document.createElement('canvas');
-    normalCanvas.width = 1024;
-    normalCanvas.height = 1024;
+    normalCanvas.width = width;
+    normalCanvas.height = height;
     const ctxN = normalCanvas.getContext('2d');
 
     // Clear for normal map generation
     ctxN.fillStyle = '#8080ff'; // Flat normal
-    ctxN.fillRect(0, 0, 1024, 1024);
+    ctxN.fillRect(0, 0, width, height);
 
     // Draw thousands of tiny strokes to simulate fur strands
     const numStrands = 15000;
@@ -91,8 +91,8 @@ export function generateFurTextures() {
 /**
  * Generates procedural eye texture
  */
-export function generateEyeTexture() {
-    const size = 1024;
+export function generateEyeTexture(hue = 40) {
+    const size = 512;
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
@@ -117,9 +117,9 @@ export function generateEyeTexture() {
 
     // Deep base color gradient
     const baseGradient = ctx.createRadialGradient(cx, cy, irisRadius * 0.2, cx, cy, irisRadius);
-    baseGradient.addColorStop(0, '#B8860B'); // Dark Goldenrod center
-    baseGradient.addColorStop(0.5, '#9ACD32'); // Yellow Green
-    baseGradient.addColorStop(1, '#2F4F2F'); // Dark Slate Gray/Green rim
+    baseGradient.addColorStop(0, `hsl(${hue}, 80%, 30%)`); 
+    baseGradient.addColorStop(0.5, `hsl(${hue + 20}, 70%, 40%)`); 
+    baseGradient.addColorStop(1, `hsl(${hue - 20}, 90%, 20%)`); 
     ctx.fillStyle = baseGradient;
     ctx.fillRect(0, 0, size, size);
 
@@ -131,7 +131,7 @@ export function generateEyeTexture() {
         const outerR = irisRadius * (0.5 + Math.random() * 0.5);
         
         // Complex color variance for realism
-        const hue = 40 + Math.random() * 50; // Amber to Green range
+        const fiberHue = hue + (Math.random() - 0.5) * 40; 
         const sat = 40 + Math.random() * 60;
         const light = 20 + Math.random() * 60;
         const alpha = 0.1 + Math.random() * 0.3;

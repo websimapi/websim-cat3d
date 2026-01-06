@@ -94,6 +94,10 @@ export class SceneManager {
         this.scene.add(object);
     }
 
+    remove(object) {
+        this.scene.remove(object);
+    }
+
     setFollowTarget(target) {
         this.followTarget = target;
     }

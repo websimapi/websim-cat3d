@@ -38,3 +38,38 @@ canvas {
 .loading-overlay.hidden {
     opacity: 0;
 }
+
+.title-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 5;
+    pointer-events: none; /* Let clicks pass through to 3D if needed, but we capture clicks on window */
+}
+
+.tap-to-start {
+    font-size: 2rem;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    animation: pulse 2s infinite ease-in-out;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1rem 2rem;
+    border-radius: 2rem;
+    backdrop-filter: blur(4px);
+}
+
+@keyframes pulse {
+    0% { opacity: 0.5; transform: scale(0.95); }
+    50% { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 0.5; transform: scale(0.95); }
+}
+
+.hidden {
+    display: none !important;
+}
