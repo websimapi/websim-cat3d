@@ -92,53 +92,120 @@ export function generateFurTextures() {
  * Generates procedural eye texture
  */
 export function generateEyeTexture() {
-    const size = 512;
+    const size = 1024;
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    const centerX = size / 2;
-    const centerY = size / 2;
+    const cx = size / 2;
+    const cy = size / 2;
+    const irisRadius = size * 0.45;
 
-    // Sclera (Outer)
-    ctx.fillStyle = '#FFF8E7';
+    // 1. Sclera (White/Off-white with subtle shading)
+    const scleraGradient = ctx.createRadialGradient(cx, cy, irisRadius, cx, cy, size * 0.7);
+    scleraGradient.addColorStop(0, '#DDDDE8');
+    scleraGradient.addColorStop(1, '#FFFFFF');
+    ctx.fillStyle = scleraGradient;
     ctx.fillRect(0, 0, size, size);
 
-    // Iris (Yellow-Green)
-    const irisRad = size * 0.45;
-    const grad = ctx.createRadialGradient(centerX, centerY, irisRad * 0.2, centerX, centerY, irisRad);
-    grad.addColorStop(0, '#AACC55'); // Inner light
-    grad.addColorStop(0.7, '#88AA44'); // Main color
-    grad.addColorStop(1, '#556622'); // Outer rim
-
-    ctx.fillStyle = grad;
+    // 2. Iris Background & Fibers
+    ctx.save();
     ctx.beginPath();
-    ctx.arc(centerX, centerY, irisRad, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(cx, cy, irisRadius, 0, Math.PI * 2);
+    ctx.clip();
 
-    // Iris Pattern (Radial lines)
-    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-    ctx.lineWidth = 2;
-    for(let i=0; i<60; i++) {
-        const angle = (i / 60) * Math.PI * 2;
+    // Deep base color gradient
+    const baseGradient = ctx.createRadialGradient(cx, cy, irisRadius * 0.2, cx, cy, irisRadius);
+    baseGradient.addColorStop(0, '#B8860B'); // Dark Goldenrod center
+    baseGradient.addColorStop(0.5, '#9ACD32'); // Yellow Green
+    baseGradient.addColorStop(1, '#2F4F2F'); // Dark Slate Gray/Green rim
+    ctx.fillStyle = baseGradient;
+    ctx.fillRect(0, 0, size, size);
+
+    // Detailed Fibers (Stroma)
+    const numFibers = 3000;
+    for (let i = 0; i < numFibers; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const innerR = irisRadius * 0.15;
+        const outerR = irisRadius * (0.5 + Math.random() * 0.5);
+        
+        // Complex color variance for realism
+        const hue = 40 + Math.random() * 50; // Amber to Green range
+        const sat = 40 + Math.random() * 60;
+        const light = 20 + Math.random() * 60;
+        const alpha = 0.1 + Math.random() * 0.3;
+        
+        ctx.strokeStyle = `hsla(${hue}, ${sat}%, ${light}%, ${alpha})`;
+        ctx.lineWidth = 0.5 + Math.random() * 1.5;
+        
         ctx.beginPath();
-        ctx.moveTo(centerX + Math.cos(angle)*irisRad*0.3, centerY + Math.sin(angle)*irisRad*0.3);
-        ctx.lineTo(centerX + Math.cos(angle)*irisRad*0.9, centerY + Math.sin(angle)*irisRad*0.9);
+        // Start from inner, wiggle out
+        const cp1x = cx + Math.cos(angle - 0.05) * (innerR + outerR) * 0.4;
+        const cp1y = cy + Math.sin(angle - 0.05) * (innerR + outerR) * 0.4;
+        
+        ctx.moveTo(cx + Math.cos(angle) * innerR, cy + Math.sin(angle) * innerR);
+        ctx.quadraticCurveTo(cp1x, cp1y, cx + Math.cos(angle) * outerR, cy + Math.sin(angle) * outerR);
         ctx.stroke();
     }
 
-    // Pupil (Vertical Slit)
-    ctx.fillStyle = '#000000';
+    // Collarette (Distinct wavy ring around pupil)
+    ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)'; // Gold
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.ellipse(centerX, centerY, irisRad * 0.15, irisRad * 0.45, 0, 0, Math.PI * 2);
+    const collaretteRad = irisRadius * 0.35;
+    for(let i=0; i<=120; i++) {
+        const angle = (i/120) * Math.PI * 2;
+        const r = collaretteRad + Math.sin(i * 0.5) * 20 + (Math.random() - 0.5) * 10;
+        if(i===0) ctx.moveTo(cx + Math.cos(angle)*r, cy + Math.sin(angle)*r);
+        else ctx.lineTo(cx + Math.cos(angle)*r, cy + Math.sin(angle)*r);
+    }
+    ctx.closePath();
+    ctx.stroke();
+
+    // Dark Limbal Ring (Outer edge)
+    const limbalGrad = ctx.createRadialGradient(cx, cy, irisRadius * 0.9, cx, cy, irisRadius);
+    limbalGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    limbalGrad.addColorStop(0.5, 'rgba(20,30,20,0.3)');
+    limbalGrad.addColorStop(1, 'rgba(10,15,10,0.9)');
+    ctx.fillStyle = limbalGrad;
+    ctx.fillRect(0, 0, size, size);
+
+    // Fake Shadow (Top eyelid occlusion)
+    const shadowGrad = ctx.createLinearGradient(0, cy - irisRadius, 0, cy + irisRadius * 0.5);
+    shadowGrad.addColorStop(0, 'rgba(0,0,0,0.5)');
+    shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = shadowGrad;
+    ctx.fillRect(0, 0, size, size);
+
+    // Fake Caustics (Bottom Highlight - Light passing through cornea)
+    ctx.globalCompositeOperation = 'overlay';
+    const causticGrad = ctx.createRadialGradient(cx, cy + irisRadius * 0.4, irisRadius * 0.1, cx, cy + irisRadius * 0.4, irisRadius * 0.7);
+    causticGrad.addColorStop(0, 'rgba(255,255,220,0.5)');
+    causticGrad.addColorStop(1, 'rgba(255,255,220,0)');
+    ctx.fillStyle = causticGrad;
+    ctx.fillRect(0,0,size,size);
+    ctx.globalCompositeOperation = 'source-over';
+
+    ctx.restore(); // End Iris Clip
+
+    // 3. Pupil (Sharp Vertical Slit)
+    const pupilW = irisRadius * 0.16;
+    const pupilH = irisRadius * 0.72;
+    
+    ctx.fillStyle = '#050200';
+    ctx.beginPath();
+    // Almond shape for pupil
+    ctx.moveTo(cx, cy - pupilH/2);
+    ctx.bezierCurveTo(cx + pupilW/2, cy - pupilH/4, cx + pupilW/2, cy + pupilH/4, cx, cy + pupilH/2);
+    ctx.bezierCurveTo(cx - pupilW/2, cy + pupilH/4, cx - pupilW/2, cy - pupilH/4, cx, cy - pupilH/2);
     ctx.fill();
 
-    // Highlight (Fake reflection baked in, though PBR handles real reflection)
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.beginPath();
-    ctx.arc(centerX - 50, centerY - 50, 30, 0, Math.PI * 2);
+    // Pupil Softness
+    ctx.shadowColor = '#000000';
+    ctx.shadowBlur = 15;
     ctx.fill();
+    ctx.shadowBlur = 0;
 
     const tex = new THREE.CanvasTexture(canvas);
     return tex;

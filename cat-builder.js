@@ -25,10 +25,10 @@ export function createCatModel() {
     const eyeMaterial = new THREE.MeshPhysicalMaterial({
         map: eyeMap,
         color: 0xffffff,
-        roughness: 0.1,
+        roughness: 0.0, // Wet surface
         metalness: 0.0,
         clearcoat: 1.0,
-        clearcoatRoughness: 0.1,
+        clearcoatRoughness: 0.0,
         transmission: 0.0,
     });
 
@@ -143,19 +143,23 @@ export function createCatModel() {
     headGroup.add(rightEarGroup);
 
     // Eyes
-    const eyeGeo = new THREE.SphereGeometry(0.11, 24, 24);
+    const eyeGeo = new THREE.SphereGeometry(0.11, 32, 32);
     eyeGeo.rotateY(-Math.PI / 2); // Orient texture
     
     const leftEye = new THREE.Mesh(eyeGeo, eyeMaterial);
     leftEye.position.set(0.2, 0.08, 0.38);
     leftEye.rotation.set(0, -0.15, 0);
+    leftEye.castShadow = true;
+    leftEye.receiveShadow = true;
     
     const rightEye = new THREE.Mesh(eyeGeo, eyeMaterial);
     rightEye.position.set(-0.2, 0.08, 0.38);
     rightEye.rotation.set(0, 0.15, 0);
+    rightEye.castShadow = true;
+    rightEye.receiveShadow = true;
 
     // Eyelids
-    const eyelidGeo = new THREE.SphereGeometry(0.12, 24, 24, 0, Math.PI * 2, 0, Math.PI/2);
+    const eyelidGeo = new THREE.SphereGeometry(0.12, 32, 32, 0, Math.PI * 2, 0, Math.PI/2);
     const leftEyelid = new THREE.Mesh(eyelidGeo, furMaterial);
     leftEyelid.position.copy(leftEye.position);
     leftEyelid.rotation.x = -Math.PI / 3; 
