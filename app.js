@@ -89,17 +89,36 @@ const App = () => {
             const dist = pointerDownPos.distanceTo(new THREE.Vector2(e.clientX, e.clientY));
             
             if (duration < 300 && dist < 10) {
-                // If Title -> Start Game
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, sceneManager.camera);
+
+                // If Title -> Select Cat and Start Game
                 if (activeCatIndex === -1) {
-                    startGame();
+                    const target = new THREE.Vector3();
+                    raycaster.ray.intersectPlane(planeIntersect, target);
+                    
+                    if (target) {
+                        // Find closest cat to the tap location
+                        let closestIndex = -1;
+                        let minDistance = Infinity;
+                        
+                        cats.forEach((cat, index) => {
+                            const d = cat.mesh.position.distanceTo(target);
+                            if (d < minDistance) {
+                                minDistance = d;
+                                closestIndex = index;
+                            }
+                        });
+                        
+                        if (closestIndex !== -1) {
+                            startGame(closestIndex);
+                        }
+                    }
                     return;
                 }
 
                 // If Playing -> Move Cat
-                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-                
-                raycaster.setFromCamera(mouse, sceneManager.camera);
                 const target = new THREE.Vector3();
                 raycaster.ray.intersectPlane(planeIntersect, target);
                 
@@ -109,26 +128,12 @@ const App = () => {
             }
         };
         
-        const startGame = () => {
-            // Pick a random cat to keep
-            const keptIndex = Math.floor(Math.random() * cats.length);
-            activeCatIndex = 0; // The kept cat becomes index 0 after cleanup
-            
-            const keptCat = cats[keptIndex];
-            
-            // Remove others
-            for(let i = cats.length - 1; i >= 0; i--) {
-                if (i !== keptIndex) {
-                    sceneManager.remove(cats[i].mesh);
-                }
-            }
-            
-            // Update array
-            cats.length = 0;
-            cats.push(keptCat);
+        const startGame = (index) => {
+            activeCatIndex = index;
+            const selectedCat = cats[index];
             
             // Setup Camera for Game
-            sceneManager.setFollowTarget(keptCat.mesh);
+            sceneManager.setFollowTarget(selectedCat.mesh);
             sceneManager.controls.autoRotate = false;
             
             setGameState('PLAYING');
@@ -144,12 +149,12 @@ const App = () => {
             const dt = 0.016;
 
             // Behavior updates
-            cats.forEach(cat => {
-                // Random wandering in Title Mode
-                if (activeCatIndex === -1) {
+            cats.forEach((cat, index) => {
+                // NPC Logic: Random wandering for non-player cats
+                if (activeCatIndex === -1 || index !== activeCatIndex) {
                     if (cat.behavior.state === 'SITTING' && Math.random() < 0.005) {
                         const angle = Math.random() * Math.PI * 2;
-                        const r = 2 + Math.random() * 4;
+                        const r = 2 + Math.random() * 6;
                         const target = new THREE.Vector3(Math.cos(angle)*r, 0, Math.sin(angle)*r);
                         cat.behavior.setTarget(target);
                     }
